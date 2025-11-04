@@ -2,6 +2,7 @@ import React from 'react';
 import { createBrowserRouter } from "react-router";
 import Root from '../Pages/Root';
 import Home from '../Pages/Home';
+import Host from '../Pages/Host/Host';
 
 export const router = createBrowserRouter([
   {
@@ -11,6 +12,10 @@ export const router = createBrowserRouter([
         {
             index: true,
             Component: Home,
+        },
+        {
+            path: "/host",
+            Component: Host,
         }
     ]
   },

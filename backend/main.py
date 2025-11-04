@@ -2,12 +2,26 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
+from contextlib import asynccontextmanager
 import logging
 import os
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
 
+uri = "mongodb+srv://simpleDBUser:kHTGxYO3n9W0xkRf@cluster0.ybmclvy.mongodb.net/?appName=Cluster0"
+
+# Create a new client and connect to the server
+client = MongoClient(uri, server_api=ServerApi('1'))
+
+# Send a ping to confirm a successful connection
+try:
+    client.admin.command('ping')
+    print("Pinged your deployment. You successfully connected to MongoDB!")
+except Exception as e:
+    print(e)
 
 # Load environment variables
 load_dotenv()
@@ -16,36 +30,16 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Finance Real Estate Chatbot API")
-
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite default port
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Global variables for Gemini client and config
 gemini_client = None
 generation_config = None
 
-class Message(BaseModel):
-    role: str
-    content: str
-
-class ChatRequest(BaseModel):
-    messages: List[Message]
-    max_length: int = 512
-
-class ChatResponse(BaseModel):
-    response: str
-
-@app.on_event("startup")
-async def load_model():
-    """Initialize Gemini API client and configure tools"""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize on startup, cleanup on shutdown"""
     global gemini_client, generation_config
+    
+    # Startup
     try:
         logger.info("Initializing Gemini API with Google Search...")
         api_key = os.getenv("GEMINI_API_KEY")
@@ -73,6 +67,36 @@ async def load_model():
     except Exception as e:
         logger.error(f"Error initializing Gemini: {str(e)}")
         raise
+    
+    yield  # Server runs here
+    
+    # Shutdown (cleanup if needed)
+    logger.info("Shutting down...")
+
+app = FastAPI(title="Finance Real Estate Chatbot API", lifespan=lifespan)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # Vite default port
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+class Message(BaseModel):
+    role: str
+    content: str
+
+class ChatRequest(BaseModel):
+    messages: List[Message]
+    max_length: int = 512
+
+class ChatResponse(BaseModel):
+    response: str
+
+
+
 
 @app.get("/")
 async def root():

@@ -6,7 +6,7 @@ const Navbar = () => {
     const links = <>
         <NavLink to='/' className={({ isActive }) => isActive ? "text-blue-500 font-bold" : "text-gray-500"}>Home</NavLink>
         <NavLink to='/properties' className={({ isActive }) => isActive ? "text-blue-500 font-bold" : "text-gray-500"} >Properties</NavLink>
-        <NavLink to='/profile' className={({ isActive }) => isActive ? "text-blue-500 font-bold" : "text-gray-500"} >My Profile</NavLink>
+        <NavLink to='/profile' className={({ isActive }) => isActive ? "text-blue-500 font-bold" : "text-gray-500"} >Invest</NavLink>
     </>
 
     return (
@@ -27,8 +27,8 @@ const Navbar = () => {
 
                 <div className="navbar-end">
                     <Link className='btn bg-linear-to-r from-[#632EE3] to-[#9F62F2] border-none text-white'
-                        to='/'>
-                        Contribute
+                        to='/host'>
+                        Host Property
                     </Link>
                 </div>
             </div>
