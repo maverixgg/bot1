@@ -26,7 +26,7 @@ const Trending = () => {
 
     if (loading) {
         return (
-            <div className='py-20 bg-gradient-to-br from-slate-50 via-white to-slate-50'>
+            <div className='py-20 bg-linear-to-br from-slate-50 via-white to-slate-50'>
                 <div className='text-center'>
                     <div className='inline-block w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin'></div>
                     <p className='text-slate-600 font-semibold mt-4'>Loading trending properties...</p>
@@ -36,7 +36,7 @@ const Trending = () => {
     }
 
     return (
-        <section className='py-16 lg:py-24 bg-gradient-to-br from-slate-50 via-white to-slate-50 relative overflow-hidden'>
+        <section className='py-16 lg:py-24 bg-linear-to-br from-slate-50 via-white to-slate-50 relative overflow-hidden'>
             {/* Decorative Background Elements */}
             <div className='absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-500/5 to-transparent rounded-full blur-3xl'></div>
             <div className='absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-amber-500/5 to-transparent rounded-full blur-3xl'></div>

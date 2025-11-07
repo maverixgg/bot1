@@ -1,7 +1,6 @@
 import React from 'react';
 import gulshan from '../../assets/gulshan.png'
 
-
 const Hero = () => {
     return (
         <div className='bg-[#F5F5F5]'>
