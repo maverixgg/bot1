@@ -64,6 +64,7 @@ const Properties = () => {
                             onChange={(e) => setLocationFilter(e.target.value)}
                             className='w-full pl-12 pr-12 py-4 rounded-xl border-2 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-100 transition-all duration-300 shadow-sm hover:shadow-md font-medium'
                         />
+                        
                         {locationFilter && (
                             <button
                                 onClick={() => setLocationFilter('')}
