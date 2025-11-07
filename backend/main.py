@@ -34,14 +34,23 @@ def get_mongo_client():
     
     if client is None:
         try:
-            client = MongoClient(MONGODB_URI, server_api=ServerApi('1'))
+            logger.info(f"Connecting to MongoDB...")
+            client = MongoClient(
+                MONGODB_URI, 
+                server_api=ServerApi('1'),
+                serverSelectionTimeoutMS=5000  # 5 second timeout
+            )
+            # Test the connection
             client.admin.command('ping')
             logger.info("Successfully connected to MongoDB!")
             nexaur_db = client.get_database('nexaur_ai')
             prop_collection = nexaur_db.get_collection('properties')
+            logger.info("Database and collection initialized")
         except Exception as e:
             logger.error(f"MongoDB connection error: {str(e)}")
-            raise
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
     
     return prop_collection
 
@@ -138,11 +147,15 @@ async def health_check():
 @app.get("/properties")
 async def allprops():
     try:
+        logger.info("Fetching properties from MongoDB...")
+        
         # Get MongoDB collection
         collection = get_mongo_client()
+        logger.info("MongoDB client obtained successfully")
         
         # Find all properties and convert cursor to list
         properties = list(collection.find({}))
+        logger.info(f"Found {len(properties)} properties")
         
         # Convert ObjectId to string for JSON serialization
         for prop in properties:
@@ -155,7 +168,10 @@ async def allprops():
         }
     except Exception as e:
         logger.error(f"Error fetching properties: {str(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Error fetching properties: {str(e)}")
+
 
 
 @app.post("/chat", response_model=ChatResponse)
