@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 import logging
 import os
 from dotenv import load_dotenv
@@ -20,6 +21,9 @@ client = MongoClient(uri, server_api=ServerApi('1'))
 try:
     client.admin.command('ping')
     print("Pinged your deployment. You successfully connected to MongoDB!")
+    nexaur_db = client.get_database('nexaur_ai')
+    prop_collection = nexaur_db.get_collection('properties')
+    
 except Exception as e:
     print(e)
 
@@ -95,7 +99,17 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str
 
-
+class HostForm(BaseModel):
+    companyName: str
+    propertyName: str
+    location: str
+    photoUrl: str
+    projectType: str
+    totalApartments: float
+    apartmentSize: float
+    presentStatus: str
+    numFloors: float
+    landSize: float
 
 
 @app.get("/")
@@ -197,6 +211,38 @@ Now begin your conversation below.
     except Exception as e:
         logger.error(f"Error generating response: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error generating response: {str(e)}")
+
+@app.post("/host")
+async def host_property(hostform: HostForm):
+    """Store property in MongoDB"""
+    if prop_collection is None:
+        raise HTTPException(status_code=503, detail="Database not initialized")
+    
+    try:
+        # Convert Pydantic model to dict
+        property_data = hostform.model_dump()
+        
+        # Add metadata with timezone-aware datetime
+        property_data["created_at"] = datetime.now(timezone.utc)
+        property_data["updated_at"] = datetime.now(timezone.utc)
+        property_data["status"] = "active"
+        
+        # Insert into MongoDB
+        result = prop_collection.insert_one(property_data)
+        
+        logger.info(f"Property inserted with ID: {result.inserted_id}")
+        
+        # Return success response
+        return {
+            "success": True,
+            "message": "Property added successfully",
+            "property_id": str(result.inserted_id),
+            "data": hostform
+        }
+        
+    except Exception as e:
+        logger.error(f"Error inserting property: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error saving property: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

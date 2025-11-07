@@ -1,5 +1,6 @@
 import axios from 'axios';
 import React, { useState } from 'react';
+import { toast } from 'react-toastify';
 
 const API_URL = 'http://localhost:8000'
 
@@ -8,30 +9,63 @@ const HostingForm = () => {
     // Initial values are pre-filled based on your image.
     const [formData, setFormData] = useState({
         companyName: '',
+        propertyName: '',
+        location: '',
         photoUrl: '',
         projectType: 'Residential',
         totalApartments: 10,
         apartmentSize: 4200,
         presentStatus: 'ongoing',
         numFloors: 10,
-        numBasements: 2,
         landSize: 9.85,
     });
 
     // A single handler to update the state for any input
     const handleChange = (e) => {
-        const { name, value } = e.target;
+        const { name, value, type, valueAsNumber } = e.target;
+        const parsedValue = type === 'number' ? (Number.isNaN(valueAsNumber) ? '' : valueAsNumber) : value;
         setFormData((prevData) => ({
             ...prevData,
-            [name]: value,
+            [name]: parsedValue,
         }));
     };
 
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // In a real app, you would send this data to your API
-        console.log('Form data submitted:', formData);
-        const res = await axios.post(`${API_URL}/host`, formData)
+        try {
+            // Coerce numeric fields to numbers on the payload side
+            const payload = {
+                ...formData,
+                totalApartments: Number(formData.totalApartments) || 0,
+                apartmentSize: Number(formData.apartmentSize) || 0,
+                numFloors: Number(formData.numFloors) || 0,
+                landSize: Number(formData.landSize) || 0,
+            };
+
+            console.log('Form data submitted:', payload);
+            const res = await axios.post(`${API_URL}/host`, payload);
+
+            console.log('Property added successfully:', res.data);
+            toast.success('✅ Congratulations! Your property has been listed successfully.');
+
+            // Reset form to initial values
+            setFormData({
+                companyName: '',
+                propertyName: '',
+                location: '',
+                photoUrl: '',
+                projectType: 'Residential',
+                totalApartments: 10,
+                apartmentSize: 4200,
+                presentStatus: 'ongoing',
+                numFloors: 10,
+                landSize: 9.85,
+            });
+        } catch (err) {
+            console.error('Failed to add property', err);
+            toast.error('❌ Failed to add property. Please try again.');
+        }
     };
 
     // Base classes for form inputs
@@ -77,6 +111,46 @@ const HostingForm = () => {
                             value={formData.companyName}
                             onChange={handleChange}
                             placeholder="e.g., ABC Developers Ltd."
+                            className={inputBaseClass}
+                            required
+                        />
+                    </div>
+
+                    {/* Property Name - Spans 2 columns */}
+                    <div className="flex flex-col col-span-1 sm:col-span-2">
+                        <label
+                            htmlFor="propertyName"
+                            className="block text-sm font-medium text-gray-700 mb-2"
+                        >
+                            Property Name
+                        </label>
+                        <input
+                            type="text"
+                            id="propertyName"
+                            name="propertyName"
+                            value={formData.propertyName}
+                            onChange={handleChange}
+                            placeholder="e.g., Sunrise Residency"
+                            className={inputBaseClass}
+                            required
+                        />
+                    </div>
+
+                    {/* Location - Spans 2 columns */}
+                    <div className="flex flex-col col-span-1 sm:col-span-2">
+                        <label
+                            htmlFor="location"
+                            className="block text-sm font-medium text-gray-700 mb-2"
+                        >
+                            Location
+                        </label>
+                        <input
+                            type="text"
+                            id="location"
+                            name="location"
+                            value={formData.location}
+                            onChange={handleChange}
+                            placeholder="e.g., Dhaka, Gulshan"
                             className={inputBaseClass}
                             required
                         />
@@ -203,25 +277,7 @@ const HostingForm = () => {
                         </div>
                     </div>
 
-                    {/* Number of Basements */}
-                    <div className="flex flex-col">
-                        <label
-                            htmlFor="numBasements"
-                            className="block text-sm font-medium text-gray-700 mb-2"
-                        >
-                            Basements
-                        </label>
-                        <input
-                            type="number"
-                            id="numBasements"
-                            name="numBasements"
-                            value={formData.numBasements}
-                            onChange={handleChange}
-                            placeholder="e.g., 2"
-                            className={inputBaseClass}
-                            required
-                        />
-                    </div>
+                    {/* Basements field removed per request */}
 
                     {/* Land Size - Spans 2 columns */}
                     <div className="flex flex-col col-span-1 sm:col-span-2">
