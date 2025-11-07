@@ -85,7 +85,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",  # Vite default port for local development
         "https://*.vercel.app",   # Vercel preview deployments
-        "https://nexaur-properties.vercel.app"  # Your production domain (update this)
+        "https://nexaur-properties.vercel.app",  # Your production domain (update this)
+        "https://your-project.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
