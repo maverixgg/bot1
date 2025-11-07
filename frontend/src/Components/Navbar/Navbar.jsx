@@ -6,7 +6,7 @@ const Navbar = () => {
     const links = <>
         <NavLink to='/' className={({ isActive }) => isActive ? "text-blue-500 font-bold" : "text-gray-500"}>Home</NavLink>
         <NavLink to='/properties' className={({ isActive }) => isActive ? "text-blue-500 font-bold" : "text-gray-500"} >Properties</NavLink>
-        <NavLink to='/profile' className={({ isActive }) => isActive ? "text-blue-500 font-bold" : "text-gray-500"} >Invest</NavLink>
+        <NavLink to='/consult' className={({ isActive }) => isActive ? "text-blue-500 font-bold" : "text-gray-500"} >Consult</NavLink>
     </>
 
     return (

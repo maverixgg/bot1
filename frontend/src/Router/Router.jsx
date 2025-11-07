@@ -4,6 +4,7 @@ import Root from '../Pages/Root';
 import Home from '../Pages/Home';
 import Host from '../Pages/Host/Host';
 import Properties from '../Pages/Properties/Properties';
+import App from '../App'
 
 export const router = createBrowserRouter([
   {
@@ -21,6 +22,10 @@ export const router = createBrowserRouter([
         {
             path: "/properties",
             Component: Properties,
+        },
+        {
+            path: "/consult",
+            Component: App
         }
     ]
   },

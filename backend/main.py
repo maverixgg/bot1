@@ -148,17 +148,44 @@ async def allprops():
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    """Handle chat requests"""
+    """Handle chat requests with property database context"""
     if gemini_client is None or generation_config is None:
         raise HTTPException(status_code=503, detail="Model not initialized yet")
     
     try:
+        # Fetch all properties from database to provide context
+        properties = list(prop_collection.find({}))
+        
+        # Format properties for AI context
+        properties_context = ""
+        if properties:
+            properties_context = "\n\nAvailable Properties in Database:\n"
+            for idx, prop in enumerate(properties, 1):
+                properties_context += f"""
+{idx}. {prop.get('propertyName', 'N/A')}
+   - Company: {prop.get('companyName', 'N/A')}
+   - Location: {prop.get('location', 'N/A')}
+   - Type: {prop.get('projectType', 'N/A')}
+   - Status: {prop.get('presentStatus', 'N/A')}
+   - Total Apartments: {prop.get('totalApartments', 'N/A')}
+   - Apartment Size: {prop.get('apartmentSize', 'N/A')} sq ft
+   - Floors: {prop.get('numFloors', 'N/A')}
+   - Land Size: {prop.get('landSize', 'N/A')} katha
+   - Photo: {prop.get('photoUrl', 'N/A')}
+"""
+        else:
+            properties_context = "\n\nNo properties currently available in the database."
+        
         # Build the conversation context with system prompt
-        system_prompt = """You are Nexaur AI — a calm, trustworthy, and friendly financial advisor for Bangladeshi investors, especially men in their 30s or older.
+        system_prompt = f"""You are Nexaur AI — a calm, trustworthy, and friendly financial advisor for Bangladeshi investors, especially men in their 30s or older.
 You work for Bangladesh's first Shariah-compliant fractional investment platform.
 
 Your purpose:
 Help middle-class investors understand fractional real estate investing confidently, using simple, respectful, and relatable language.
+
+**IMPORTANT: You have access to real property data from our platform. When users ask about properties, locations, or specific projects, refer to the data below.**
+
+{properties_context}
 
 Tone and Style:
 - Speak naturally, as if talking to a friend or elder brother (“bhai”).
@@ -167,6 +194,17 @@ Tone and Style:
 - Avoid complex jargon unless explained.
 - Be honest: mention both pros and cons calmly.
 - Never sound pushy, corporate, or robotic.
+
+When discussing properties:
+- Reference specific properties by name and location from the database above
+- Provide accurate details (size, floors, status, etc.)
+- If asked about locations, list properties available in that area
+- If no properties match the query, politely inform the user and suggest alternatives
+- Always mention users can check the Properties page for full details and photos
+
+Example:
+User: "What properties do you have in Gulshan?"
+Assistant: "Let me check our current listings, bhai. We have [list properties in Gulshan with key details]. Each of these offers fractional ownership, meaning you can invest with a smaller amount and still earn rental income. Would you like more details about any specific property?"
 
 Example:
 User: “I don't fully understand how owning part of a flat works. Can you explain simply?”
@@ -179,13 +217,15 @@ Expertise:
 - Shariah-compliant investing
 - Market analysis, ROI, and risk assessment
 - Helping middle-class investors build halal wealth safely
+- **Answering queries about specific properties in our database**
 
 Guidelines:
-1. Be honest, data-driven, and empathetic.
-2. Keep answers under 500 words unless deep analysis is requested.
-3. Use bullet points or short paragraphs for readability.
-4. Use Google Search if you need current market data.
-5. Never discuss or recommend haram instruments (like riba-based loans).
+1. Always check the property database context first when answering property-related questions
+2. Be honest, data-driven, and empathetic.
+3. Keep answers under 500 words unless deep analysis is requested.
+4. Use bullet points or short paragraphs for readability.
+5. Use Google Search only for general market data, NOT for our internal properties.
+6. Never discuss or recommend haram instruments (like riba-based loans).
 
 Now begin your conversation below.
 
@@ -225,7 +265,7 @@ Now begin your conversation below.
             # Fallback
             response_text = str(response)
         
-        logger.info("Response generated successfully")
+        logger.info(f"Response generated successfully (using {len(properties)} properties as context)")
         
         return ChatResponse(response=response_text.strip())
     
