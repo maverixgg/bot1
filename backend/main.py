@@ -2,7 +2,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
-from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import logging
 import os
@@ -12,21 +11,6 @@ from google.genai import types
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 
-uri = "mongodb+srv://simpleDBUser:kHTGxYO3n9W0xkRf@cluster0.ybmclvy.mongodb.net/?appName=Cluster0"
-
-# Create a new client and connect to the server
-client = MongoClient(uri, server_api=ServerApi('1'))
-
-# Send a ping to confirm a successful connection
-try:
-    client.admin.command('ping')
-    print("Pinged your deployment. You successfully connected to MongoDB!")
-    nexaur_db = client.get_database('nexaur_ai')
-    prop_collection = nexaur_db.get_collection('properties')
-    
-except Exception as e:
-    print(e)
-
 # Load environment variables
 load_dotenv()
 
@@ -34,50 +18,67 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Global variables for Gemini client and config
+# MongoDB connection string
+MONGODB_URI = "mongodb+srv://simpleDBUser:kHTGxYO3n9W0xkRf@cluster0.ybmclvy.mongodb.net/?appName=Cluster0"
+
+# Global variables
+client = None
+nexaur_db = None
+prop_collection = None
 gemini_client = None
 generation_config = None
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Initialize on startup, cleanup on shutdown"""
+def get_mongo_client():
+    """Get or create MongoDB client"""
+    global client, nexaur_db, prop_collection
+    
+    if client is None:
+        try:
+            client = MongoClient(MONGODB_URI, server_api=ServerApi('1'))
+            client.admin.command('ping')
+            logger.info("Successfully connected to MongoDB!")
+            nexaur_db = client.get_database('nexaur_ai')
+            prop_collection = nexaur_db.get_collection('properties')
+        except Exception as e:
+            logger.error(f"MongoDB connection error: {str(e)}")
+            raise
+    
+    return prop_collection
+
+def get_gemini_client():
+    """Get or create Gemini client"""
     global gemini_client, generation_config
     
-    # Startup
-    try:
-        logger.info("Initializing Gemini API with Google Search...")
-        api_key = os.getenv("GEMINI_API_KEY")
-        
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY not found in environment variables")
-        
-        # Initialize Gemini client
-        gemini_client = genai.Client(api_key=api_key)
-        
-        # Configure Google Search tool
-        google_search_tool = types.Tool(
-            google_search=types.GoogleSearch()
-        )
-        
-        # Create generation config with tools (extensible for future tools)
-        generation_config = types.GenerateContentConfig(
-            tools=[google_search_tool],  # Add more tools here in the future
-            temperature=0.7,
-            top_p=0.9,
-            max_output_tokens=1200,
-        )
-        
-        logger.info("Gemini API with Google Search initialized successfully!")
-    except Exception as e:
-        logger.error(f"Error initializing Gemini: {str(e)}")
-        raise
+    if gemini_client is None:
+        try:
+            logger.info("Initializing Gemini API...")
+            api_key = os.getenv("GEMINI_API_KEY")
+            
+            if not api_key:
+                logger.error("GEMINI_API_KEY not found in environment variables")
+                return None, None
+            
+            gemini_client = genai.Client(api_key=api_key)
+            
+            google_search_tool = types.Tool(
+                google_search=types.GoogleSearch()
+            )
+            
+            generation_config = types.GenerateContentConfig(
+                tools=[google_search_tool],
+                temperature=0.7,
+                top_p=0.9,
+                max_output_tokens=1200,
+            )
+            
+            logger.info("Gemini API initialized successfully!")
+        except Exception as e:
+            logger.error(f"Error initializing Gemini: {str(e)}")
+            return None, None
     
-    yield  # Server runs here
-    
-    # Shutdown (cleanup if needed)
-    logger.info("Shutting down...")
+    return gemini_client, generation_config
 
-app = FastAPI(title="Finance Real Estate Chatbot API", lifespan=lifespan)
+app = FastAPI(title="Finance Real Estate Chatbot API")
 
 # CORS middleware - Allow all origins for Vercel deployment
 app.add_middleware(
@@ -118,19 +119,30 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {
-        "status": "healthy",
-        "model_loaded": gemini_client is not None,
-        "model": "Gemini 2.5 Flash",
-        "tools": ["Google Search"]
-    }
+    try:
+        client, config = get_gemini_client()
+        return {
+            "status": "healthy",
+            "model_loaded": client is not None,
+            "model": "Gemini 2.5 Flash",
+            "tools": ["Google Search"]
+        }
+    except Exception as e:
+        return {
+            "status": "healthy",
+            "model_loaded": False,
+            "error": str(e)
+        }
 
 
 @app.get("/properties")
 async def allprops():
     try:
+        # Get MongoDB collection
+        collection = get_mongo_client()
+        
         # Find all properties and convert cursor to list
-        properties = list(prop_collection.find({}))
+        properties = list(collection.find({}))
         
         # Convert ObjectId to string for JSON serialization
         for prop in properties:
@@ -149,12 +161,18 @@ async def allprops():
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """Handle chat requests with property database context"""
-    if gemini_client is None or generation_config is None:
-        raise HTTPException(status_code=503, detail="Model not initialized yet")
+    
+    # Get Gemini client
+    client, config = get_gemini_client()
+    if client is None or config is None:
+        raise HTTPException(status_code=503, detail="Gemini API not initialized. Please check GEMINI_API_KEY environment variable.")
     
     try:
+        # Get MongoDB collection
+        collection = get_mongo_client()
+        
         # Fetch all properties from database to provide context
-        properties = list(prop_collection.find({}))
+        properties = list(collection.find({}))
         
         # Format properties for AI context
         properties_context = ""
@@ -276,10 +294,10 @@ async def chat(request: ChatRequest):
 @app.post("/host")
 async def host_property(hostform: HostForm):
     """Store property in MongoDB"""
-    if prop_collection is None:
-        raise HTTPException(status_code=503, detail="Database not initialized")
-    
     try:
+        # Get MongoDB collection
+        collection = get_mongo_client()
+        
         # Convert Pydantic model to dict
         property_data = hostform.model_dump()
         
@@ -289,7 +307,7 @@ async def host_property(hostform: HostForm):
         property_data["status"] = "active"
         
         # Insert into MongoDB
-        result = prop_collection.insert_one(property_data)
+        result = collection.insert_one(property_data)
         
         logger.info(f"Property inserted with ID: {result.inserted_id}")
         
