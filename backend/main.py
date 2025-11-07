@@ -79,15 +79,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Finance Real Estate Chatbot API", lifespan=lifespan)
 
-# CORS middleware
+# CORS middleware - Allow all origins for Vercel deployment
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",  # Vite default port for local development
-        "https://*.vercel.app",   # Vercel preview deployments
-        "https://nexaur-properties-ai.vercel.app",  # Your production domain (update this)
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=False,  # Must be False when allow_origins is "*"
     allow_methods=["*"],
     allow_headers=["*"],
 )
