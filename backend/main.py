@@ -125,6 +125,27 @@ async def health_check():
         "tools": ["Google Search"]
     }
 
+
+@app.get("/properties")
+async def allprops():
+    try:
+        # Find all properties and convert cursor to list
+        properties = list(prop_collection.find({}))
+        
+        # Convert ObjectId to string for JSON serialization
+        for prop in properties:
+            properties["_id"] = str(prop["_id"])
+        
+        return {
+            "success": True,
+            "count": len(properties),
+            "properties": properties
+        }
+    except Exception as e:
+        logger.error(f"Error fetching properties: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching properties: {str(e)}")
+
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """Handle chat requests"""
@@ -243,6 +264,7 @@ async def host_property(hostform: HostForm):
     except Exception as e:
         logger.error(f"Error inserting property: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error saving property: {str(e)}")
+
 
 if __name__ == "__main__":
     import uvicorn
