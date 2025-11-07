@@ -5,8 +5,7 @@ import BotHeader from './Components/BotHeader'
 import MessageList from './Components/MessageList'
 import QuickPrompts from './Components/QuickPrompts'
 import ChatInput from './Components/ChatInput'
-
-const API_URL = 'http://localhost:8000'
+import API_BASE_URL from './config/api'
 
 // Function to format markdown-style text
 const formatMessage = (text) => {
@@ -134,7 +133,7 @@ function App() {
 
   const checkApiHealth = async () => {
     try {
-      const response = await axios.get(`${API_URL}/health`)
+      const response = await axios.get(`${API_BASE_URL}/health`)
       setApiStatus(response.data.model_loaded ? 'ready' : 'loading')
     } catch (error) {
       setApiStatus('error')
@@ -151,7 +150,7 @@ function App() {
     setLoading(true)
 
     try {
-      const response = await axios.post(`${API_URL}/chat`, {
+      const response = await axios.post(`${API_BASE_URL}/chat`, {
         messages: updatedMessages,
         max_length: 512
       })

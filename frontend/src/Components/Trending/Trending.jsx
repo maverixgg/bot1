@@ -2,6 +2,7 @@ import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import PropertyCard from '../PropertyCard/PropertyCard';
 import { Star, Home, ArrowRight } from 'lucide-react';
+import API_BASE_URL from '../../config/api';
 
 const Trending = () => {
 
@@ -11,7 +12,7 @@ const Trending = () => {
     useEffect(() => {
         const fetchTrend = async () => {
             try {
-                const response = await axios.get("http://localhost:8000/properties");
+                const response = await axios.get(`${API_BASE_URL}/properties`);
                 console.log('Trending properties loaded:', response.data.properties);
                 setTrend(response.data.properties || []);
                 setLoading(false);

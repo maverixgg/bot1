@@ -1,6 +1,7 @@
 import axios from 'axios';
 import React, { useEffect, useState, useMemo } from 'react';
 import PropertyCard from '../../Components/PropertyCard/PropertyCard';
+import API_BASE_URL from '../../config/api';
 
 const Properties = () => {
 
@@ -11,7 +12,7 @@ const Properties = () => {
     useEffect(() => {
         const fetchProperties = async () => {
             try {
-                const response = await axios.get('http://localhost:8000/properties');
+                const response = await axios.get(`${API_BASE_URL}/properties`);
                 setProperties(response.data.properties || []);
                 setLoading(false);
             } catch (error) {

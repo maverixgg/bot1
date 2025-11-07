@@ -1,8 +1,7 @@
 import axios from 'axios';
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
-
-const API_URL = 'http://localhost:8000'
+import API_BASE_URL from '../../config/api';
 
 const HostingForm = () => {
     // We use a single state object to hold all form data.
@@ -44,7 +43,7 @@ const HostingForm = () => {
             };
 
             console.log('Form data submitted:', payload);
-            const res = await axios.post(`${API_URL}/host`, payload);
+            const res = await axios.post(`${API_BASE_URL}/host`, payload);
 
             console.log('Property added successfully:', res.data);
             toast.success('✅ Congratulations! Your property has been listed successfully.');
